@@ -1,0 +1,11 @@
+{
+  "cleanUrls": true,
+  "functions": {
+    "api/**/*.go": {
+      "includeFiles": "Kushal_resume_Backend.pdf"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ]
+}

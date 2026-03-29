@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "HTTP Server Mode",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "stopOnEntry": false,
+            "showLog": true,
+            "trace": "verbose",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Worker Mode",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/main.go",
+            "args": ["-mode=worker"],
+            "stopOnEntry": false,
+            "showLog": true,
+            "trace": "verbose",
+            "console": "integratedTerminal"
+        }
+    ]
+}

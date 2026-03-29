@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Send emails</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1218;
+      --surface: #171b24;
+      --border: #2a3142;
+      --text: #e8eaef;
+      --muted: #8b95a8;
+      --accent: #6c9eff;
+      --accent-dim: #4a7ad4;
+      --danger: #f07178;
+      --ok: #7fd99a;
+      --radius: 12px;
+      --font: "DM Sans", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: radial-gradient(1200px 600px at 20% -10%, #1a2340 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 20%, #152a28 0%, transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    header {
+      margin-bottom: 2rem;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.35rem;
+    }
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+    }
+    section.card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.35rem;
+    }
+    section.card h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 0 0 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .field { margin-bottom: 0.9rem; }
+    .field:last-child { margin-bottom: 0; }
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0d1017;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.95rem;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    #recipients { min-height: 140px; font-family: ui-monospace, "Cascadia Code", monospace; font-size: 0.88rem; }
+    #body { min-height: 220px; }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-dim);
+      box-shadow: 0 0 0 3px rgba(108, 158, 255, 0.15);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      align-items: center;
+    }
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.9rem;
+    }
+    .check input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    button.primary {
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: #0a0e14;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(108, 158, 255, 0.25);
+    }
+    button.primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+    button.primary:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    #status {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    #status.show { display: block; }
+    #status.ok { background: rgba(127, 217, 154, 0.12); border: 1px solid rgba(127, 217, 154, 0.35); color: var(--ok); }
+    #status.err { background: rgba(240, 113, 120, 0.1); border: 1px solid rgba(240, 113, 120, 0.35); color: var(--danger); }
+    details.oauth {
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.9rem;
+    }
+    details.oauth summary {
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .oauth-grid { margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Send emails</h1>
+      <p>Configure SMTP (or rely on a local <code style="color:var(--accent)">.env</code>), add recipients, then send.</p>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Environment / SMTP</h2>
+        <p class="hint" style="margin: -0.5rem 0 1rem;">Values here are sent only to this app for the send request. Leave blank to use your <code>.env</code> file beside the executable.</p>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="SMTP_HOST">SMTP_HOST</label>
+            <input type="text" id="SMTP_HOST" name="SMTP_HOST" placeholder="smtp.gmail.com" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="SMTP_PORT">SMTP_PORT</label>
+            <input type="text" id="SMTP_PORT" name="SMTP_PORT" placeholder="587" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="SMTP_USER">SMTP_USER</label>
+            <input type="text" id="SMTP_USER" name="SMTP_USER" placeholder="you@gmail.com" autocomplete="username" />
+          </div>
+          <div class="field">
+            <label for="SMTP_PASSWORD">SMTP_PASSWORD</label>
+            <input type="password" id="SMTP_PASSWORD" name="SMTP_PASSWORD" placeholder="app password or leave for OAuth" autocomplete="current-password" />
+          </div>
+          <div class="field">
+            <label for="FROM_EMAIL">FROM_EMAIL</label>
+            <input type="text" id="FROM_EMAIL" name="FROM_EMAIL" placeholder="optional; defaults to SMTP_USER" autocomplete="off" />
+          </div>
+        </div>
+        <div class="field row">
+          <label class="check"><input type="checkbox" id="SMTP_USE_OAUTH2" /> SMTP_USE_OAUTH2</label>
+          <label class="check"><input type="checkbox" id="useSSL" /> Implicit TLS (port 465 / SSL)</label>
+        </div>
+        <details class="oauth">
+          <summary>Google OAuth (when SMTP_USE_OAUTH2 is on)</summary>
+          <div class="oauth-grid grid grid-2">
+            <div class="field">
+              <label for="GOOGLE_OAUTH_CLIENT_ID">GOOGLE_OAUTH_CLIENT_ID</label>
+              <input type="text" id="GOOGLE_OAUTH_CLIENT_ID" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="GOOGLE_OAUTH_CLIENT_SECRET">GOOGLE_OAUTH_CLIENT_SECRET</label>
+              <input type="password" id="GOOGLE_OAUTH_CLIENT_SECRET" autocomplete="off" />
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="GOOGLE_OAUTH_REFRESH_TOKEN">GOOGLE_OAUTH_REFRESH_TOKEN</label>
+              <input type="password" id="GOOGLE_OAUTH_REFRESH_TOKEN" autocomplete="off" />
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Recipients & message</h2>
+        <div class="field">
+          <label for="recipients">Recipients (one email per line)</label>
+          <textarea id="recipients" placeholder="friend@company.com&#10;hr@example.org"></textarea>
+        </div>
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" placeholder="Leave empty for built-in default" />
+        </div>
+        <div class="field">
+          <label for="body">Body</label>
+          <textarea id="body" placeholder="Plain text. Leave empty for built-in default."></textarea>
+        </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="attach">PDF attachment path</label>
+            <input type="text" id="attach" value="Kushal_resume_Backend.pdf" />
+          </div>
+          <div class="field">
+            <label for="bodyFile">Body file (optional, overrides body above)</label>
+            <input type="text" id="bodyFile" placeholder="relative to app folder" />
+          </div>
+        </div>
+        <div class="field row">
+          <label class="check"><input type="checkbox" id="noAttach" /> Send without PDF attachment</label>
+        </div>
+        <div class="grid grid-2">
+          <div class="field">
+            <label for="at">Schedule send at (local time)</label>
+            <input type="text" id="at" placeholder="2026-03-28 23:50:00 or leave empty" />
+          </div>
+          <div class="field">
+            <label for="delaySeconds">Delay before send (seconds, -1 = off)</label>
+            <input type="number" id="delaySeconds" value="-1" />
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="sendBtn">Send emails</button>
+          <span class="hint" id="busyHint" style="display:none;">Sending…</span>
+        </div>
+        <div id="status"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const envKeys = [
+      "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "FROM_EMAIL",
+      "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"
+    ];
+
+    function collectEnv() {
+      const env = {};
+      for (const k of envKeys) {
+        const v = $(k).value.trim();
+        if (v) env[k] = v;
+      }
+      if ($("SMTP_USE_OAUTH2").checked) {
+        env.SMTP_USE_OAUTH2 = "true";
+      }
+      return env;
+    }
+
+    function parseRecipients(text) {
+      return text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("#"));
+    }
+
+    function showStatus(ok, msg) {
+      const el = $("status");
+      el.className = "show " + (ok ? "ok" : "err");
+      el.textContent = msg;
+    }
+
+    function hideStatus() {
+      const el = $("status");
+      el.className = "";
+      el.textContent = "";
+    }
+
+    $("sendBtn").addEventListener("click", async () => {
+      hideStatus();
+      const recipients = parseRecipients($("recipients").value);
+      if (!recipients.length) {
+        showStatus(false, "Add at least one recipient email.");
+        return;
+      }
+
+      const delayRaw = parseInt($("delaySeconds").value, 10);
+      const delaySeconds = Number.isFinite(delayRaw) ? delayRaw : -1;
+      let delayPayload = null;
+      if (delaySeconds >= 0) delayPayload = delaySeconds;
+
+      const payload = {
+        env: collectEnv(),
+        recipients,
+        subject: $("subject").value.trim(),
+        body: $("body").value,
+        bodyFile: $("bodyFile").value.trim(),
+        at: $("at").value.trim(),
+        delaySeconds: delayPayload,
+        useSSL: $("useSSL").checked,
+        noAttach: $("noAttach").checked,
+        attach: $("attach").value.trim() || "Kushal_resume_Backend.pdf"
+      };
+
+      $("sendBtn").disabled = true;
+      $("busyHint").style.display = "inline";
+
+      try {
+        const res = await fetch("/api/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showStatus(false, data.error || ("HTTP " + res.status));
+          return;
+        }
+        showStatus(true, "Sent to " + (data.sent || recipients.length) + " recipient(s).");
+      } catch (e) {
+        showStatus(false, e.message || String(e));
+      } finally {
+        $("sendBtn").disabled = false;
+        $("busyHint").style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
