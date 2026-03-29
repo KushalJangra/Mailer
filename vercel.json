@@ -1,8 +1,11 @@
 {
   "cleanUrls": true,
   "functions": {
-    "api/send/index.go": {
+    "api/send.go": {
       "includeFiles": "Kushal_resume_Backend.pdf"
+    },
+    "api/health.go": {
+      "maxDuration": 5
     }
   },
   "rewrites": [
