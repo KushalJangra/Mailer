@@ -63,8 +63,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		params.AttachPath = "Kushal_resume_Backend.pdf"
 	}
 
-	// On Vercel, the AppDir will be the serverless function path, but that's okay.
-	exeDir, _ := mailer.AppDir()
+	// Use current working directory for asset resolution on Vercel.
+	exeDir := "."
 
 	sendErr := mailer.WithEnv(req.Env, func() error {
 		smtpHost, smtpPort, user, pass, from, useOAuth2, err2 := mailer.SmtpConfigFromCurrentEnv()
