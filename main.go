@@ -27,8 +27,19 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// Handler handles all API requests for Vercel and local server.
+// Handler handles all API and UI requests for Vercel and local server.
 func Handler(w http.ResponseWriter, r *http.Request) {
+	if !strings.HasPrefix(r.URL.Path, "/api/") {
+		// Serve UI from embedded FS
+		sub, err := fs.Sub(webFS, "public")
+		if err != nil {
+			http.Error(w, "FS error: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.FileServer(http.FS(sub)).ServeHTTP(w, r)
+		return
+	}
+
 	path := strings.TrimPrefix(r.URL.Path, "/api")
 	path = strings.TrimPrefix(path, "/")
 
@@ -38,10 +49,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	case "send":
 		handleSend(w, r)
 	default:
-		if path == "" || path == "index" {
-			handleHealth(w, r)
-			return
-		}
 		http.NotFound(w, r)
 	}
 }
@@ -160,6 +167,13 @@ func main() {
 
 	if *httpAddr != "" {
 		runHTTPServer(*httpAddr)
+		return
+	}
+
+	// For Vercel: Automatically run the server if the PORT environment variable is set
+	if port := os.Getenv("PORT"); port != "" {
+		log.Printf("Detected Vercel/environment PORT=%s, starting server...\n", port)
+		runHTTPServer(port)
 		return
 	}
 

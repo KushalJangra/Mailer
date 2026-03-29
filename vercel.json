@@ -7,6 +7,6 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/main.go" }
+    { "source": "/(.*)", "destination": "/main.go" }
   ]
 }
