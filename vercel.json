@@ -1,14 +1,12 @@
 {
   "cleanUrls": true,
   "functions": {
-    "api/send/*.go": {
-      "includeFiles": "Kushal_resume_Backend.pdf"
-    },
-    "api/health/*.go": {
-      "maxDuration": 5
+    "api/index.go": {
+      "includeFiles": "Kushal_resume_Backend.pdf",
+      "maxDuration": 15
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
+    { "source": "/api/(.*)", "destination": "/api/index.go" }
   ]
 }
