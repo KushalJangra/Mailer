@@ -1,5 +1,4 @@
-// Package send provides the Vercel serverless send endpoint.
-package send
+package main
 
 import (
 	"context"

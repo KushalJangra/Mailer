@@ -1,5 +1,4 @@
-// Package health provides the Vercel serverless health endpoint.
-package health
+package main
 
 import (
 	"encoding/json"
