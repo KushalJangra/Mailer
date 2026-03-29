@@ -18,6 +18,7 @@ import (
 )
 
 
+//go:embed public
 var webFS embed.FS
 
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
