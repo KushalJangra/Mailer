@@ -27,77 +27,112 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-func runHTTPServer(addr string) {
+// Handler handles all API requests for Vercel and local server.
+func Handler(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	path = strings.TrimPrefix(path, "/")
+
+	switch path {
+	case "health":
+		handleHealth(w, r)
+	case "send":
+		handleSend(w, r)
+	default:
+		if path == "" || path == "index" {
+			handleHealth(w, r)
+			return
+		}
+		http.NotFound(w, r)
+	}
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func handleSend(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req mailer.SendHTTPRequest
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
+		return
+	}
+
+	rec := mailer.UniqPreserve(req.Recipients)
+	if len(rec) == 0 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "add at least one recipient email"})
+		return
+	}
+
+	var delay *int
+	if req.DelaySeconds != nil && *req.DelaySeconds >= 0 {
+		delay = req.DelaySeconds
+	}
+	at := strings.TrimSpace(req.At)
+	if at != "" && delay != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "use only one of at or delaySeconds"})
+		return
+	}
+
+	params := mailer.SendParams{
+		Recipients: rec,
+		Subject:    req.Subject,
+		Body:       req.Body,
+		BodyFile:   req.BodyFile,
+		At:         at,
+		DelaySec:   delay,
+		UseSSL:     req.UseSSL,
+		NoAttach:   req.NoAttach,
+		AttachPath: req.Attach,
+	}
+
+	if params.AttachPath == "" {
+		params.AttachPath = "Kushal_resume_Backend.pdf"
+	}
+
 	exeDir, err := mailer.AppDir()
 	if err != nil {
-		log.Fatal(err)
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
 	}
+
+	_ = mailer.LoadDotEnv()
+	sendErr := mailer.WithEnv(req.Env, func() error {
+		smtpHost, smtpPort, user, pass, from, useOAuth2, err2 := mailer.SmtpConfigFromCurrentEnv()
+		if err2 != nil {
+			return err2
+		}
+		return mailer.DoSend(r.Context(), exeDir, smtpHost, smtpPort, user, pass, from, useOAuth2, params)
+	})
+
+	if sendErr != nil {
+		code := http.StatusBadRequest
+		if strings.HasPrefix(sendErr.Error(), "send failed:") || strings.HasPrefix(sendErr.Error(), "smtp auth:") {
+			code = http.StatusBadGateway
+		}
+		writeJSON(w, code, map[string]string{"error": sendErr.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "sent": len(rec)})
+}
+
+func runHTTPServer(addr string) {
 	sub, err := fs.Sub(webFS, "public")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fileSrv := http.FileServer(http.FS(sub))
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
-	mux.HandleFunc("/api/send", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.Header().Set("Allow", http.MethodPost)
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		var req mailer.SendHTTPRequest
-		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON: " + err.Error()})
-			return
-		}
-		rec := mailer.UniqPreserve(req.Recipients)
-		if len(rec) == 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "add at least one recipient email"})
-			return
-		}
-		var delay *int
-		if req.DelaySeconds != nil && *req.DelaySeconds >= 0 {
-			delay = req.DelaySeconds
-		}
-		at := strings.TrimSpace(req.At)
-		if at != "" && delay != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "use only one of at or delaySeconds"})
-			return
-		}
-		params := mailer.SendParams{
-			Recipients: rec,
-			Subject:    req.Subject,
-			Body:       req.Body,
-			BodyFile:   req.BodyFile,
-			At:         at,
-			DelaySec:   delay,
-			UseSSL:     req.UseSSL,
-			NoAttach:   req.NoAttach,
-			AttachPath: req.Attach,
-		}
-		if params.AttachPath == "" {
-			params.AttachPath = "Kushal_resume_Backend.pdf"
-		}
-		_ = mailer.LoadDotEnv()
-		sendErr := mailer.WithEnv(req.Env, func() error {
-			smtpHost, smtpPort, user, pass, from, useOAuth2, err2 := mailer.SmtpConfigFromCurrentEnv()
-			if err2 != nil {
-				return err2
-			}
-			return mailer.DoSend(r.Context(), exeDir, smtpHost, smtpPort, user, pass, from, useOAuth2, params)
-		})
-		if sendErr != nil {
-			code := http.StatusBadRequest
-			if strings.HasPrefix(sendErr.Error(), "send failed:") || strings.HasPrefix(sendErr.Error(), "smtp auth:") {
-				code = http.StatusBadGateway
-			}
-			writeJSON(w, code, map[string]string{"error": sendErr.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, map[string]interface{}{"ok": true, "sent": len(rec)})
-	})
+
+	// Use the unified Handler for all /api/ requests
+	mux.HandleFunc("/api/", Handler)
+
 	mux.Handle("/", fileSrv)
 	listenAddr := addr
 	if listenAddr != "" && !strings.Contains(listenAddr, ":") {

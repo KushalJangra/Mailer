@@ -1,12 +1,12 @@
 {
   "cleanUrls": true,
   "functions": {
-    "api/index.go": {
+    "main.go": {
       "includeFiles": "Kushal_resume_Backend.pdf",
       "maxDuration": 15
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.go" }
+    { "source": "/api/(.*)", "destination": "/main.go" }
   ]
 }
